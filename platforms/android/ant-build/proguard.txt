@@ -1,3 +1,0 @@
-# view AndroidManifest.xml #generated:6
--keep class me.borges.epr.MelhorNegcio { <init>(...); }
-
