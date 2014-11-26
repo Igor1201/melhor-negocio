@@ -1,0 +1,222 @@
+<div data-role="page">
+   <script>
+      function removerClick(event) {
+        console.log("click");
+
+        var valor = parseInt($(event.target).parent().attr("data-valor"));
+        var inicio = parseInt($(event.target).parent().attr("data-inicio"));
+        var n = parseInt($(event.target).parent().attr("data-n"));
+        var tipo = $(event.target).parent().attr("data-tipo");
+        var fim = inicio+n-1;
+
+        var numeros = [];
+        var data = chart.series[0].data;
+        for (var i = 0; i < inicio; i++) {
+          numeros[i] = data[i].y;
+        }
+        if (tipo == "A") {
+          for (var i = inicio; i <= fim; i++) {
+            numeros[i] = data[i].y - valor;
+          }
+        } else if (tipo == "G") {
+          for (var i = inicio; i <= fim; i++) {
+            numeros[i] = data[i].y - valor * (i - inicio);
+          }
+        }
+        for (var i = fim+1; i < data.length; i++) {
+          numeros[i] = data[i].y;
+        }
+
+        var qtdZeros = 0;
+        for (var i = 0; i < numeros.length; i++) {
+          if (!numeros[i] || numeros[i] == 0)
+            qtdZeros++;
+          else
+            qtdZeros = 0;
+        }
+        numeros.splice(numeros.length-qtdZeros);
+
+        chart.series[0].setData(numeros);
+        chart.series[0].update(chart.series[0].options);
+
+        $(event.target).parent().remove();
+      };
+
+      function calcularVPL(i) {
+        i /= 100;
+        var data = chart.series[0].data;
+        var soma = 0;
+        for (var j = 1; j < data.length; j++) {
+          soma += data[j].y * (1 / Math.pow(1 + i, j));
+        }
+        return soma;
+      }
+
+      var chart;
+
+      $().ready(function() {
+
+        chart = new Highcharts.Chart({
+          credits: {
+            enabled: false
+          },
+          plotOptions: {
+            column: {
+              states: {
+                hover: {
+                  color: '#000000',
+                }
+              }
+            }
+          },
+          tooltip: {
+            formatter: function() {
+              return this.x + ": " + this.y;
+            }
+          },
+          chart: {
+            renderTo: 'chart',
+            backgroundColor: null,
+            type: 'column'
+          },
+          title: {
+            text: 'Fluxo de Caixa'
+          },
+          series: [{
+            showInLegend: false,
+            data: [],
+            color: '#0088FF',
+            negativeColor: '#FF0000'
+          }]
+        });
+
+        $("#formFluxo").on("submit", function() {
+          console.log("submit");
+
+          var tipo = $("input[name=tipo]:checked", "#formFluxo").val();
+          var valor = parseInt($("#valor").val());
+          var inicio = parseInt($("#inicio").val());
+          var n = parseInt($("#n").val());
+          var fim = inicio+n-1;
+
+          if (inicio > fim) return false;
+
+          var numeros = [];
+          var data = chart.series[0].data;
+          for (var i = 0; i <= Math.max(data.length-1, fim); i++) {
+            if (data[i])
+              numeros[i] = data[i].y;
+            else
+              numeros[i] = 0;
+          }
+
+          if (tipo == "A") {
+            for (var i = inicio; i <= fim; i++) {
+              numeros[i] += valor;
+            }
+          } else if (tipo == "G") {
+            for (var i = inicio; i <= fim; i++) {
+              numeros[i] += valor * (i - inicio);
+            }
+          }
+
+          var qtdZeros = 0;
+          for (var i = 0; i < numeros.length; i++) {
+            if (!numeros[i] || numeros[i] == 0)
+              qtdZeros++;
+            else
+              qtdZeros = 0;
+          }
+          numeros.splice(numeros.length-qtdZeros);
+
+          chart.series[0].setData(numeros);
+          chart.series[0].update(chart.series[0].options);
+
+          var link1 = $("<a>", {"href": "#"}).text(tipo + "(R$ " + valor + "; " + inicio + "; " + n + ")");
+          var link2 = $("<a>", {"data-icon": "delete", "href": "#"}).text(".");
+
+          $("#series").append($("<li>", {"data-tipo":tipo, "data-valor":valor, "data-inicio":inicio, "data-n":n}).append(link1).append(link2));
+          link2.click(removerClick);
+          $("#series").listview("refresh");
+
+          $("#valor").val("");
+          $("#inicio").val("");
+          $("#n").val("");
+          return false;
+        });
+
+        $("#btnVPL").on("click", function() {
+          console.log("click");
+          showLoading();
+          $("#response").text("R$ " + calcularVPL(parseInt($("#i").val())).toFixed(2));
+          hideLoading();
+          return false;
+        });
+
+      });
+   </script>
+
+   <div data-role="panel" id="menu" data-theme="b" data-display="overlay" data-position="left">
+      <span>Menu</span>
+      <a class="ui-btn" data-theme="b" href="index.html">Home</a>
+      <a class="ui-btn" data-theme="b" href="conversor.html">Conversor de Moedas</a>
+      <a class="ui-btn" data-theme="b" href="analise.html">Análise de Compra</a>
+      <a class="ui-btn" data-theme="b" href="jurosreal.html">Juros Real</a>
+      <a class="ui-btn" data-theme="b" href="poupanca.html">Lucro na Poupaça</a>
+      <a class="ui-btn" data-theme="b" href="fluxo.html">Fluxo de Caixa</a>
+   </div>
+   <div data-role="header" data-position="fixed" data-theme="b">
+      <h3>Fluxo de Caixa</h3>
+      <a class="ui-btn ui-btn-left ui-btn-icon-notext ui-icon-bars ui-mini ui-corner-all" href="#menu">.</a>
+   </div>
+   <div role="main" class="ui-content">
+      <p>Selecione A para série uniforme e G para série gradiente. Digite o valor, o período de início e a
+      quantidade de períodos e pressione "+" para acrescentar os valores ao fluxo de caixa. Acrescente quantas
+      séries desejar!</p>
+
+      <div id="chart"></div>
+
+      <br/>
+
+      <ul data-role="listview" id="series">
+        <li data-role="list-divider">Séries</li>
+      </ul>
+
+      <br/><br/>
+
+      <form id="formFluxo" method="post" data-ajax="false">
+        <div class="ui-grid-a">
+          <div class="ui-block-a" style="width:25%">
+            <fieldset data-role="controlgroup" data-type="horizontal" data-mini="true">
+               <input type="radio" name="tipo" id="tipoA" value="A" checked="checked">
+               <label for="tipoA">A</label>
+               <input type="radio" name="tipo" id="tipoG" value="G">
+               <label for="tipoG">G</label>
+            </fieldset>
+          </div>
+          <div class="ui-block-b" style="width:calc(75% - 3px); margin-right:3px">
+            <input type="number" id="valor" placeholder="Valor" step="0.01" required style="width:100%" />
+          </div>
+        </div>
+
+        <br/>
+
+        <div class="ui-grid-a">
+          <div class="ui-block-a" style="width:45%">
+            <input type="number" id="inicio" placeholder="Início" step="1" min="0" required />
+          </div>
+          <div class="ui-block-b" style="width:45%">
+            <input type="number" id="n" placeholder="Períodos" step="1" min="0" max="150" required />
+          </div>
+          <div class="ui-block-c" style="width:10%">
+            <button class="ui-btn ui-shadow ui-corner-all ui-icon-plus ui-btn-icon-notext" style="width: calc(100% - 10px)"></button>
+          </div>
+        </div>
+      </form>
+
+      <input type="number" id="i" placeholder="Taxa" step="0.01" required />
+      <button id="btnVPL" class="ui-btn ui-mini ui-shadow ui-corner-all">Calcular Valor Presente</button>
+      <h2 id="response"></h2>
+
+   </div>
+</div>

@@ -1,0 +1,122 @@
+<div data-role="page">
+      <script>
+         $().ready(function() {
+
+           $("#btnPoupanca").on("click", function() {
+             console.log("click");
+             showLoading();
+
+               // check if info is on cache
+               if (localStorage["196"]) {
+                   var obj = JSON.parse(localStorage["196"]);
+                   if ((new Date().getTime() - obj["timestamp"]) <= 30 *
+                       60 * 1000) { // 30 minutos
+                       carregarPoupanca(obj["serie"]["valor"]);
+                       return false;
+                   }
+               }
+               if (!isOnline()) {
+                 carregarPoupanca(0.5);
+                 return false;
+               }
+               $.ajax({
+                   type: "POST",
+                   url: "https://script.google.com/macros/s/AKfycbxpWjB0Wkz3GJh6o_-PMf2WETsLQ6HMwNnOn2u7mKQcry1jsBLu/exec",
+                   data: {
+                       command: "getUltimoValor",
+                       codigoSerie: "196"
+                   },
+                   success: successPoupanca,
+                   error: processError
+               });
+               return false;
+           });
+
+           function successPoupanca(data, status, req) {
+               if (status == "success") {
+                 console.log("success");
+                   var obj = JSON.parse(req.responseText);
+                   obj["timestamp"] = new Date().getTime();
+                   localStorage[obj["serie"]["codigo"]] = JSON.stringify(obj);
+                   carregarPoupanca(obj["serie"]["valor"]);
+               }
+           }
+
+           function processError(data, status, req) {
+             console.log("error");
+             carregarPoupanca(0.5);
+           }
+
+           function carregarPoupanca(poup) {
+               hideLoading();
+               $("#i").val(poup);
+           }
+
+            $("#formAnalise").on("submit", function() {
+              console.log("submit");
+              var n = $("#n").val();
+              var a = $("#a").val();
+              var vista = $("#vista").val();
+              var i = $("#i").val()/100;
+
+              var p = (a * ((Math.pow(1 + i, n) - 1) / (i * Math.pow(1 + i, n)))).toFixed(2);
+              var desconto = Math.abs(p - vista).toFixed(2);
+              if (n*a < vista) {
+                  $("#response").text("Compre parcelado por um desconto de R$ " + (vista-p));
+                  $("#status").text("Valor à vista hoje: R$ " + vista);
+                  $("#status2").text("Valor à prazo hoje: R$ " + p);
+              } else if (p < vista) {
+                  $("#response").text("Compre parcelado por um desconto de R$ " + desconto);
+                  $("#status").text("Valor à vista hoje: R$ " + vista);
+                  $("#status2").text("Valor à prazo hoje: R$ " + p);
+              } else if (p > vista) {
+                  $("#response").text("Compre à vista por um desconto de R$ " + desconto);
+                  $("#status").text("Valor à vista hoje: R$ " + vista);
+                  $("#status2").text("Valor à prazo hoje: R$ " + p);
+              } else {
+                  $("#response").text("Tanto faz!");
+                  $("#status").text("Valor hoje: R$ " + vista);
+              }
+
+                return false;
+            });
+
+        });
+      </script>
+   <div data-role="panel" id="menu" data-theme="b" data-display="overlay" data-position="left">
+      <span>Menu</span>
+      <a class="ui-btn" data-theme="b" href="index.html">Home</a>
+      <a class="ui-btn" data-theme="b" href="conversor.html">Conversor de Moedas</a>
+      <a class="ui-btn" data-theme="b" href="analise.html">Análise de Compra</a>
+      <a class="ui-btn" data-theme="b" href="jurosreal.html">Juros Real</a>
+      <a class="ui-btn" data-theme="b" href="poupanca.html">Lucro na Poupaça</a>
+      <a class="ui-btn" data-theme="b" href="fluxo.html">Fluxo de Caixa</a>
+   </div>
+   <div data-role="header" data-position="fixed" data-theme="b">
+      <h3>Análise de Compra</h3>
+      <a class="ui-btn ui-btn-left ui-btn-icon-notext ui-icon-bars ui-mini ui-corner-all" href="#menu">.</a>
+   </div>
+   <div role="main" class="ui-content">
+      <p>Digite, nessa ordem: a taxa de interesse (ou selecione "Valor Tabelado" para usar os rendimentos
+        da poupança hoje) a quantidade de parcelas, valor das parcelas e preço à vista. Após isso, pressione
+        o botão "Analisar" para ver o resultado.</p>
+      <form id="formAnalise" method="post" data-ajax="false">
+          <div class="ui-grid-a">
+              <div class="ui-block-a" style="width:60%">
+                <input type="number" id="i" placeholder="Rendimento" step="0.0001" min="0" required />
+              </div>
+              <div class="ui-block-b" style="width:40%">
+                <button id="btnPoupanca" class="ui-btn ui-mini ui-shadow ui-corner-all ui-igor" style="width:100%">Valor Tabelado</button>
+              </div>
+          </div>
+
+         <input type="number" id="n" placeholder="Quantidade de parcelas" step="1" min="0" required />
+         <input type="number" id="a" placeholder="Valor da parcela" step="0.01" min="0" required />
+         <input type="number" id="vista" placeholder="Preço à vista" step="0.01" min="0" required />
+         <button class="ui-btn ui-mini ui-shadow ui-corner-all">Analisar</button>
+      </form>
+      <h2 id="response"></h2>
+      <h3 id="status"></h3>
+      <h3 id="status2"></h3>
+   </div>
+</div>

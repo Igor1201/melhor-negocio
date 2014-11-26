@@ -1,0 +1,52 @@
+<div data-role="page">
+   <script>
+      $().ready(function() {
+
+          $("#formJurosReal").on("submit", function() {
+            console.log("submit");
+
+            $("#response").text("Juros Real: " + (calculaJuros($("#vista").val(), $("#a").val(), $("#n").val()) * 100).toFixed(3) + "% ao período");
+
+            return false;
+          });
+
+          function calculaJuros(p, a, n) {
+              var l = 0;
+              var r = 100;
+              while (r - l > 0.000001) {
+                  var i = (r + l) / 2;
+                  var p1 = (a * ((Math.pow(1 + i, n) - 1) / (i * Math.pow(1 + i, n))));
+                  if (p1 > p) l = i;
+                  else r = i;
+              }
+              return (r + l) / 2;
+          }
+      });
+   </script>
+
+   <div data-role="panel" id="menu" data-theme="b" data-display="overlay" data-position="left">
+      <span>Menu</span>
+      <a class="ui-btn" data-theme="b" href="index.html">Home</a>
+      <a class="ui-btn" data-theme="b" href="conversor.html">Conversor de Moedas</a>
+      <a class="ui-btn" data-theme="b" href="analise.html">Análise de Compra</a>
+      <a class="ui-btn" data-theme="b" href="jurosreal.html">Juros Real</a>
+      <a class="ui-btn" data-theme="b" href="poupanca.html">Lucro na Poupaça</a>
+      <a class="ui-btn" data-theme="b" href="fluxo.html">Fluxo de Caixa</a>
+   </div>
+
+   <div data-role="header" data-position="fixed" data-theme="b">
+      <h3>Juros Real</h3>
+      <a class="ui-btn ui-btn-left ui-btn-icon-notext ui-icon-bars ui-mini ui-corner-all" href="#menu">.</a>
+   </div>
+   <div role="main" class="ui-content">
+      <p>Digite a quantidade de parcelas, valor da parcela e o preço a vista. Depois, pressione "Juros Real"
+        para encontrar a verdadeira taxa de juros do negócio.</p>
+      <form id="formJurosReal" method="post" data-ajax="false">
+         <input type="number" id="n" placeholder="Quantidade de parcelas" step="1" min="0" required />
+         <input type="number" id="a" placeholder="Valor da parcela" step="0.01" min="0" required />
+         <input type="number" id="vista" placeholder="Preço à vista" step="0.01" min="0" required />
+         <button class="ui-btn ui-mini ui-shadow ui-corner-all">Juros Real</button>
+      </form>
+      <h2 id="response"></h2>
+   </div>
+</div>
